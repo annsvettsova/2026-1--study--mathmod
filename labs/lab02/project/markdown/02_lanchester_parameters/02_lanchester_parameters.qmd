@@ -1,0 +1,109 @@
+# Параметрическое исследование модели Ланчестера
+
+Исследуется влияние коэффициента c,
+характеризующего эффективность действий армии X против армии Y.
+
+```{julia}
+using DrWatson
+@quickactivate "project"
+
+using DifferentialEquations
+using Plots
+using DataFrames
+using CSV
+
+x0 = 100_000.0
+y0 = 10_000.0
+u0 = [x0, y0]
+
+tspan = (0.0, 1.0)
+```
+
+Значение варианта: c = 0.3.
+Дополнительно исследуем более низкую и более высокую эффективность.
+
+```{julia}
+c_values = [0.2, 0.3, 0.4]
+
+condition(u, t, integrator) = min(u[1], u[2])
+
+function stop_battle!(integrator)
+    terminate!(integrator)
+end
+
+cb = ContinuousCallback(condition, stop_battle!)
+
+results = DataFrame(
+    c = Float64[],
+    battle_time = Float64[],
+    final_x = Float64[],
+    final_y = Float64[],
+)
+
+p = plot(
+    xlabel="Время",
+    ylabel="Численность армии Y",
+    title="Влияние коэффициента c",
+)
+
+for c in c_values
+
+    function model!(du, u, p, t)
+        x, y = u
+
+        du[1] = -0.12x - 0.9y + sin(t)
+        du[2] = -c*x - 0.1y + cos(t)
+    end
+
+    problem = ODEProblem(model!, u0, tspan)
+
+    solution = solve(
+        problem,
+        Tsit5();
+        callback=cb,
+        abstol=1e-9,
+        reltol=1e-9,
+        saveat=0.001,
+    )
+
+    time = solution.t
+    army_x = max.(getindex.(solution.u, 1), 0.0)
+    army_y = max.(getindex.(solution.u, 2), 0.0)
+
+    push!(
+        results,
+        (
+            c,
+            last(time),
+            last(army_x),
+            last(army_y),
+        ),
+    )
+
+    plot!(
+        p,
+        time,
+        army_y;
+        label="c = $(c)",
+        linewidth=2,
+    )
+end
+
+mkpath("data")
+mkpath("plots")
+
+CSV.write(
+    "data/lanchester_parameter_scan.csv",
+    results,
+)
+
+savefig(
+    p,
+    "plots/lanchester_parameter_scan.png",
+)
+
+println(results)
+println()
+println("LAB02 PARAMETERS OK")
+```
+
