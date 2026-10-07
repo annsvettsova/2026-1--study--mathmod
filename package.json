@@ -1,0 +1,14 @@
+{
+  "name": "mathmod",
+  "version": "1.0.0",
+  "description": "Математическое моделирование",
+  "main": "index.js",
+  "repository": "https://github.com/yamadharma/course-directory-student-template.git",
+  "author": "Анна Светцова <1132230807@pfur.ru>",
+  "license": "CC-BY-4.0",
+    "config": {
+	"commitizen": {
+	    "path": "cz-customizable"
+	}
+    }
+}
