@@ -1,0 +1,106 @@
+# Параметрическое исследование гармонического осциллятора
+
+Исследуем влияние коэффициента затухания gamma
+на решение уравнения
+
+$$
+x'' + \gamma x' + 10x = 0.
+$$
+
+```{julia}
+using DrWatson
+@quickactivate "project"
+
+using DifferentialEquations
+using Plots
+using DataFrames
+using CSV
+```
+
+## Исходные данные
+
+```{julia}
+x0 = 0.1
+v0 = 1.1
+
+u0 = [x0, v0]
+
+tspan = (0.0, 20.0)
+save_step = 0.05
+
+gamma_values = [1.0, 3.0, 5.0]
+
+mkpath("data")
+mkpath("plots")
+
+results = DataFrame(
+    gamma = Float64[],
+    max_amplitude = Float64[],
+    final_amplitude = Float64[],
+)
+
+p = plot(
+    xlabel="t",
+    ylabel="x(t)",
+    title="Влияние коэффициента затухания",
+)
+
+for gamma in gamma_values
+
+    function oscillator!(du, u, p, t)
+        x, v = u
+
+        du[1] = v
+        du[2] = -gamma * v - 10x
+    end
+
+    problem = ODEProblem(
+        oscillator!,
+        u0,
+        tspan,
+    )
+
+    solution = solve(
+        problem,
+        Tsit5();
+        saveat=save_step,
+        abstol=1e-9,
+        reltol=1e-9,
+    )
+
+    time = solution.t
+    x = getindex.(solution.u, 1)
+
+    push!(
+        results,
+        (
+            gamma,
+            maximum(abs.(x)),
+            abs(last(x)),
+        ),
+    )
+
+    plot!(
+        p,
+        time,
+        x;
+        label="gamma = $(gamma)",
+        linewidth=2,
+    )
+end
+
+CSV.write(
+    "data/oscillator_parameter_scan.csv",
+    results,
+)
+
+savefig(
+    p,
+    "plots/oscillator_damping_scan.png",
+)
+
+println(results)
+println()
+println("LAB03 PARAMETERS OK")
+```
+
