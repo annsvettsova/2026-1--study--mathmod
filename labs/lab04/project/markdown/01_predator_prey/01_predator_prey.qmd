@@ -1,0 +1,213 @@
+# Лабораторная работа № 4
+
+## Модель «хищник–жертва»
+
+Вариант 58.
+
+x(t) — численность хищников.
+y(t) — численность жертв.
+
+Система:
+
+$$
+\frac{dx}{dt} = -0.38x + 0.043xy,
+$$
+
+$$
+\frac{dy}{dt} = 0.36y - 0.052xy.
+$$
+
+```{julia}
+using DrWatson
+@quickactivate "project"
+
+using DifferentialEquations
+using Plots
+using DataFrames
+using CSV
+```
+
+## Параметры модели
+
+```{julia}
+a = 0.38
+b = 0.043
+c = 0.36
+d = 0.052
+```
+
+Начальные условия
+
+```{julia}
+x0 = 6.0
+y0 = 23.0
+
+u0 = [x0, y0]
+
+tspan = (0.0, 100.0)
+save_step = 0.05
+
+mkpath("data")
+mkpath("plots")
+```
+
+## Стационарное состояние
+
+Для ненулевого стационарного состояния:
+
+$$
+x^* = \frac{c}{d},
+\qquad
+y^* = \frac{a}{b}.
+$$
+
+```{julia}
+x_stationary = c / d
+y_stationary = a / b
+
+println("Stationary state:")
+println("x* = ", x_stationary)
+println("y* = ", y_stationary)
+```
+
+## Система Лотки–Вольтерры
+
+```{julia}
+function predator_prey!(du, u, p, t)
+    x, y = u
+
+    du[1] = -a * x + b * x * y
+    du[2] =  c * y - d * x * y
+end
+
+problem = ODEProblem(
+    predator_prey!,
+    u0,
+    tspan,
+)
+
+solution = solve(
+    problem,
+    Tsit5();
+    saveat=save_step,
+    abstol=1e-9,
+    reltol=1e-9,
+)
+
+time = solution.t
+predators = getindex.(solution.u, 1)
+prey = getindex.(solution.u, 2)
+```
+
+## Сохранение данных
+
+```{julia}
+results = DataFrame(
+    time=time,
+    predators=predators,
+    prey=prey,
+)
+
+CSV.write(
+    "data/predator_prey.csv",
+    results,
+)
+```
+
+## Изменение численности популяций
+
+```{julia}
+p1 = plot(
+    time,
+    predators;
+    label="Predators x(t)",
+    linewidth=2,
+    xlabel="Time",
+    ylabel="Population",
+    title="Predator-prey model",
+)
+
+plot!(
+    p1,
+    time,
+    prey;
+    label="Prey y(t)",
+    linewidth=2,
+)
+
+savefig(
+    p1,
+    "plots/predator_prey_time.png",
+)
+```
+
+## Phase portrait
+
+```{julia}
+p2 = plot(
+    prey,
+    predators;
+    label="Phase trajectory",
+    linewidth=2,
+    xlabel="Population жертв y",
+    ylabel="Population хищников x",
+    title="Phase portrait",
+)
+
+scatter!(
+    p2,
+    [y_stationary],
+    [x_stationary];
+    label="Stationary point",
+    markersize=6,
+)
+
+savefig(
+    p2,
+    "plots/predator_prey_phase.png",
+)
+```
+
+## Отдельные графики
+
+```{julia}
+p3 = plot(
+    time,
+    predators;
+    label="x(t)",
+    linewidth=2,
+    xlabel="Time",
+    ylabel="Predators",
+    title="Population хищников",
+)
+
+savefig(
+    p3,
+    "plots/predators.png",
+)
+
+p4 = plot(
+    time,
+    prey;
+    label="y(t)",
+    linewidth=2,
+    xlabel="Time",
+    ylabel="Prey",
+    title="Population жертв",
+)
+
+savefig(
+    p4,
+    "plots/prey.png",
+)
+
+println()
+println("Minimum predators = ", minimum(predators))
+println("Maximum predators = ", maximum(predators))
+println("Minimum prey = ", minimum(prey))
+println("Maximum prey = ", maximum(prey))
+
+println()
+println("LAB04 BASE OK")
+```
+

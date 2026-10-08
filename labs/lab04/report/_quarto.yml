@@ -39,6 +39,7 @@ format:
     # filters:
     #   - minted-quarto
     toc: true
+    monofont: "DejaVu Sans Mono"
     number-sections: true
     colorlinks: false
     toc-depth: 2
